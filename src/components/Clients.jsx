@@ -17,12 +17,19 @@ const Clients = () => {
     fetchClients();
   }, []);
 
-  const fetchClients = () => {
-    // Simulate API call delay
-    setTimeout(() => {
-      setClients(mockClients);
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/customers'); // Reemplaza con la URL de tu API
+      if (!response.ok) {
+        throw new Error('Error al recuperar los clientes');
+      }
+      const data = await response.json();
+      setClients(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const handleEdit = (client) => {
