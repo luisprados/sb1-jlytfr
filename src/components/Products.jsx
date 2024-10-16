@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // Importa Axios
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 
 
@@ -100,7 +102,9 @@ const Products = () => {
     <div className="bg-white shadow-md rounded-lg overflow-hidden">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold mb-6 p-6 bg-indigo-100 text-indigo-800">Productos</h2>
-        <button onClick={handleAddProduct} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-200">Agregar Producto</button>
+        <button onClick={handleAddProduct} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-200">
+          <FontAwesomeIcon icon={faPlus} /> Producto
+        </button>
       </div>
 
       {showAddForm && (
