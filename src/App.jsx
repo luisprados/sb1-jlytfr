@@ -4,7 +4,7 @@ import { Home, Clipboard, Users, Package } from 'lucide-react';
 import Treatments from './components/Treatments';
 import Clients from './components/Clients';
 import Products from './components/Products';
-
+import Sessions from './components/Sessions';
 function App() {
   return (
     <Router>
@@ -14,7 +14,7 @@ function App() {
           <div className="text-3xl font-bold text-indigo-600">SPA Dashboard</div>
           <ul className="space-y-6">
             {[
-              { to: "/", icon: Home, label: "Home" },
+              { to: "/sessions", icon: Home, label: "Sessions" },
               { to: "/treatments", icon: Clipboard, label: "Treatments" },
               { to: "/clients", icon: Users, label: "Clients" },
               { to: "/products", icon: Package, label: "Products" },
@@ -32,7 +32,7 @@ function App() {
         {/* Main content */}
         <main className="flex-1 p-8">
           <Routes>
-            <Route path="/" element={<h1 className="text-4xl font-bold text-indigo-800">Welcome to the Dashboard</h1>} />
+            <Route path="/sessions" element={<Sessions/>} />
             <Route path="/treatments" element={<Treatments />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/products" element={<Products />} />
