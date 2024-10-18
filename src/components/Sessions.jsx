@@ -5,31 +5,42 @@ import { debounce } from 'lodash'
 
 // Simulated API calls - replace these with actual API calls to your backend
 const searchDatabase = async (field, query) => {
-  console.log(field, query)
   //consulta a la base de datos
-  const response = await fetch(`http://localhost:8000/api/sessions/search/${query}`)
+  const response = await fetch(`http://localhost:8000/api/sessions/${field}/${query}`)
   const data = await response.json()
-  const dataArray = data.map(item => item.name)
-  console.log(dataArray)
+  const dataArray = data.map(item => ({ name: item.name, id: item.id }))
   return dataArray
   
 }
 
 const saveToDatabase = async (data) => {
-  // Simulated delay
-  await new Promise(resolve => setTimeout(resolve, 500))
-  console.log('Saved to database:', data)
-  return { success: true }
+  // Crear un nuevo objeto solo con los campos que se van a guardar
+  const dataToSave = {
+    customer_id: data.customer_id,
+    treatment_id: data.treatment_id,
+    product_id: data.product_id
+  }
+  console.log(dataToSave)
+  const response = await fetch('http://localhost:8000/api/sessions/store', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(dataToSave)
+  })
+  const result = await response.json()
+  return result
+
 }
 
 export default function Component() {
   const [formData, setFormData] = useState({
-    client: '',
+    customer: '',
     treatment: '',
     product: ''
   })
   const [suggestions, setSuggestions] = useState({
-    client: [],
+    customer: [],
     treatment: [],
     product: []
   })
@@ -39,6 +50,7 @@ export default function Component() {
     debounce(async (field, value) => {
       if (value.length > 2) {
         const results = await searchDatabase(field, value)
+        console.log(results)
         setSuggestions(prev => ({ ...prev, [field]: results }))
       } else {
         setSuggestions(prev => ({ ...prev, [field]: [] }))
@@ -54,21 +66,21 @@ export default function Component() {
   }
 
   const handleClientBlur = () => {
-    if (formData.client) {
+    if (formData.customer) {
       setShowClientSessions(true)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.client) {
+    if (!formData.customer) {
       alert('El campo cliente es obligatorio')
       return
     }
     const result = await saveToDatabase(formData)
     if (result.success) {
       alert('Registro guardado con éxito')
-      setFormData({ client: '', treatment: '', product: '' })
+      setFormData({ customer: '', treatment: '', product: '' })
     } else {
       alert('Error al guardar el registro')
     }
@@ -80,7 +92,7 @@ export default function Component() {
         {showClientSessions && (
           <div className="mb-4">
             <a href="#" className="text-blue-600 hover:underline">
-              Ver sesiones del cliente {formData.client}
+              Ver sesiones del cliente {formData.customer}
             </a>
           </div>
         )}
@@ -91,25 +103,26 @@ export default function Component() {
           </label>
           <input
             id="client"
-            name="client"
-            value={formData.client}
+            name="customer"
+            value={formData.customer}
             onChange={handleInputChange}
             onBlur={handleClientBlur}
             required
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
-          {suggestions.client.length > 0 && (
+          <input type="hidden" name="customer_id" value={formData.customer_id} />
+          {suggestions.customer.length > 0 && (
             <ul className="mt-1 bg-white border border-gray-300 rounded-md shadow-sm">
-              {suggestions.client.map((suggestion, index) => (
+              {suggestions.customer.map((suggestion, index) => (
                 <li
                   key={index}
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
-                    setFormData(prev => ({ ...prev, client: suggestion }))
-                    setSuggestions(prev => ({ ...prev, client: [] })) // Cierra el desplegable
+                    setFormData(prev => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
+                    setSuggestions(prev => ({ ...prev, customer: [] })) // Cierra el desplegable
                   }}
                 >
-                  {suggestion}
+                  {suggestion.name}
                 </li>
               ))}
             </ul>
@@ -127,15 +140,19 @@ export default function Component() {
             onChange={handleInputChange}
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
+          <input type="hidden" name="treatment_id" value={formData.treatment_id} />
           {suggestions.treatment.length > 0 && (
             <ul className="mt-1 bg-white border border-gray-300 rounded-md shadow-sm">
               {suggestions.treatment.map((suggestion, index) => (
                 <li
                   key={index}
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => setFormData(prev => ({ ...prev, treatment: suggestion }))}
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, treatment: suggestion.name, treatment_id: suggestion.id }))
+                    setSuggestions(prev => ({ ...prev, treatment: [] }))
+                  }}
                 >
-                  {suggestion}
+                  {suggestion.name}
                 </li>
               ))}
             </ul>
@@ -153,15 +170,19 @@ export default function Component() {
             onChange={handleInputChange}
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
+          <input type="hidden" name="product_id" value={formData.product_id} />
           {suggestions.product.length > 0 && (
             <ul className="mt-1 bg-white border border-gray-300 rounded-md shadow-sm">
               {suggestions.product.map((suggestion, index) => (
                 <li
                   key={index}
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => setFormData(prev => ({ ...prev, product: suggestion }))}
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, product: suggestion.name, product_id: suggestion.id }))
+                    setSuggestions(prev => ({ ...prev, product: [] }))
+                  }}
                 >
-                  {suggestion}
+                  {suggestion.name}
                 </li>
               ))}
             </ul>
