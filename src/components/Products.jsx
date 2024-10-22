@@ -168,7 +168,7 @@ const Products = () => {
                   />
                 ) : (
                   // el separador decimal es una coma
-                  `${product.sale_price.toFixed(2).replace('.', ',')}`
+                  `${(parseFloat(product.sale_price) || 0).toFixed(2).replace('.', ',')}`
                 )}
               </td>
               <td className="py-4 px-6">

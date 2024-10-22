@@ -2,26 +2,26 @@ import React, { useState, useEffect } from 'react';
 
 
 
-const Treatments = () => {
-  const [treatments, setTreatments] = useState([]);
-  const [editingTreatment, setEditingTreatment] = useState(null);
+const Jobs = () => {
+  const [jobs, setJobs] = useState([]);
+  const [editingJob, setEditingJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newTreatment, setNewTreatment] = useState({ name: '', price: 0 });
+  const [newJob, setNewJob] = useState({ name: '', price: 0 });
 
   useEffect(() => {
-    fetchTreatments();
+    fetchJobs();
   }, []);
 
-  const fetchTreatments = async () => {
+  const fetchJobs = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/treatments'); // Reemplaza con la URL de tu API
+      const response = await fetch('http://127.0.0.1:81/api/jobs'); // Reemplaza con la URL de tu API
       if (!response.ok) {
-        throw new Error('Error al recuperar los Tratamientos');
+        throw new Error('Error al recuperar los Trabajos');
       }
       const data = await response.json();
-      setTreatments(data);
+      setJobs(data);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -29,54 +29,54 @@ const Treatments = () => {
     }
   };
 
-  const handleEdit = (treatment) => {
-    setEditingTreatment(treatment);
+  const handleEdit = (job) => {
+    setEditingJob(job);
   };
 
   const handleSave = async () => {
-    if (editingTreatment) {
-      const response = await fetch(`http://127.0.0.1:8000/api/treatments/${editingTreatment.id}`, {
+    if (editingJob) {
+      const response = await fetch(`http://127.0.0.1:81/api/jobs/${editingJob.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editingTreatment),
+        body: JSON.stringify(editingJob),
       });
       if (!response.ok) {
-        throw new Error('Error al actualizar el tratamiento');
+        throw new Error('Error al actualizar el trabajo');
       }
-      const updatedTreatments = treatments.map(treatment =>
-        treatment.id === editingTreatment.id ? editingTreatment : treatment
+      const updatedJobs = jobs.map(job =>
+        job.id === editingJob.id ? editingJob : job
       );
-      setTreatments(updatedTreatments);
-      setEditingTreatment(null);
+      setJobs(updatedJobs);
+      setEditingJob(null);
     }
   };
 
-  const handleAddTreatment = () => {
+  const handleAddJob = () => {
     setShowAddForm(true);
-    setEditingTreatment({ name: '', price: 0 });
+    setEditingJob({ name: '', price: 0 });
   };
 
   const handleAddTreatmentSubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch('http://127.0.0.1:8000/api/treatments', {
+    const response = await fetch('http://127.0.0.1:81/api/jobs', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(newTreatment),
+      body: JSON.stringify(newJob),
     });
     if (!response.ok) {
       throw new Error('Error al agregar el tratamiento');
     }
     const addedTreatment = await response.json();
-    setTreatments([...treatments, addedTreatment]);
-    setNewTreatment({ name: '', price: 0 });
+    setJobs([...jobs, addedJob]);
+    setNewJob({ name: '', price: 0 });
     setShowAddForm(false);  
   };  
-  const handleNewTreatmentChange = (e) => {
-    setNewTreatment({ ...newTreatment, [e.target.name]: e.target.value });
+  const handleNewJobChange = (e) => {
+    setNewJob({ ...newJob, [e.target.name]: e.target.value });
   };  
 
   if (loading) {
@@ -100,8 +100,8 @@ const Treatments = () => {
             <input
               type="text"
               name="name"
-              value={newTreatment.name}
-              onChange={handleNewTreatmentChange}
+              value={newJob.name}
+              onChange={handleNewJobChange}
               className="border rounded px-2 py-1 w-full"
               required
             />
@@ -111,8 +111,8 @@ const Treatments = () => {
             <input
               type="number"
               name="price"
-              value={newTreatment.price}
-              onChange={handleNewTreatmentChange}
+              value={newJob.price}
+              onChange={handleNewJobChange}
               className="border rounded px-2 py-1 w-full"
               required
             />
@@ -129,37 +129,37 @@ const Treatments = () => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {treatments.map((treatment) => (
-            <tr key={treatment.id}>
+          {jobs.map((job) => (
+            <tr key={job.id}>
               <td className="py-4 px-6">
-                {editingTreatment?.id === treatment.id ? (
+                {editingJob?.id === job.id ? (
                   <input
                     type="text"
-                    value={editingTreatment.name}
-                    onChange={(e) => setEditingTreatment({ ...editingTreatment, name: e.target.value })}
+                    value={editingJob.name}
+                    onChange={(e) => setEditingJob({ ...editingJob, name: e.target.value })}
                     className="border rounded px-2 py-1 w-full"
                   />
                 ) : (
-                  treatment.name
+                  job.name
                 )}
               </td>
               <td className="py-4 px-6">
-                {editingTreatment?.id === treatment.id ? (
+                {editingJob?.id === job.id ? (
                   <input
                     type="number"
-                    value={editingTreatment.price}
-                    onChange={(e) => setEditingTreatment({ ...editingTreatment, price: parseFloat(e.target.value) })}
+                    value={editingJob.price}
+                    onChange={(e) => setEditingJob({ ...editingJob, price: parseFloat(e.target.value) })}
                     className="border rounded px-2 py-1 w-full"
                   />
                 ) : (
-                  `${(parseFloat(treatment.price) || 0).toFixed(2).replace('.', ',')}`
+                  `${job.price.toFixed(2).replace('.', ',')}`
                 )}
               </td>
               <td className="py-4 px-6">
-                {editingTreatment?.id === treatment.id ? (
+                {editingJob?.id === job.id ? (
                   <button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors duration-200">Save</button>
                 ) : (
-                  <button onClick={() => handleEdit(treatment)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-200">Edit</button>
+                  <button onClick={() => handleEdit(job)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-200">Edit</button>
                 )}
               </td>
             </tr>
@@ -170,4 +170,4 @@ const Treatments = () => {
   );
 };
 
-export default Treatments;
+export default Jobs;
