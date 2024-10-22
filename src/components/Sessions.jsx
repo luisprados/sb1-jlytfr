@@ -38,7 +38,7 @@ export default function Component() {
   const [formData, setFormData] = useState({
     customer: '',
     treatment: [{ name: '', id: '', price: '' }], // Cambia a un array de objetos
-    product: [{ name: '', id: '', cantidad: '' }]    // Cambia a un array de objetos
+    product: [{ name: '', id: '', price: '', cantidad: '1' }]    // Cambia a un array de objetos
   })
   const [suggestions, setSuggestions] = useState({
     customer: [],
@@ -52,7 +52,7 @@ export default function Component() {
     product: -1
   })
   const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
-  const [products, setProducts] = useState([{ name: '', id: '' ,cantidad: ''}])
+  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1'}])
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
 
   const debouncedSearch = useCallback(
@@ -112,24 +112,12 @@ export default function Component() {
         e.preventDefault()
         if (selectedSuggestionIndex[field] >= 0) {
            const selectedSuggestion = suggestions[field][selectedSuggestionIndex[field]]
-          console.log(selectedSuggestion)
-          console.log(field)
-          
-          // Agregar console.log para ver el nuevo estado
-        /*  const newFormData = {
-            ...formData,
-            [field]: (field === 'treatment' || field === 'product') 
-              ? [{ name: selectedSuggestion.name, id: selectedSuggestion.id }] 
-              : selectedSuggestion.name,
-            [`${field}_id`]: selectedSuggestion.id,
-          }
-          console.log('Nuevo formData:', newFormData)
-          
-          setFormData(newFormData)
-          setSuggestions((prev) => ({ ...prev, [field]: [] }))
-          setSelectedSuggestionIndex((prevIndex) => ({ ...prevIndex, [field]: -1 })) */
+         
           handleSelect(field, index, selectedSuggestion)
         }
+      } else if (e.key === 'Escape') {
+        setSuggestions((prev) => ({ ...prev, [field]: [] }))
+        setSelectedSuggestionIndex((prevIndex) => ({ ...prevIndex, [field]: -1 }))
       }
     }
   }
@@ -138,6 +126,9 @@ export default function Component() {
     const { value } = e.target
     const newItems = type === 'treatment' ? [...treatments] : [...products]
     newItems[index].name = value
+    if(type === 'product'){
+      newItems[index].price = newItems[index].price * value
+    }
     type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
     debouncedSearch(type, value)
   }
@@ -212,9 +203,15 @@ export default function Component() {
     }))
   }
 
-  // Usar useEffect para mostrar formData en consola cuando cambie
-  useEffect(() => {
-  }, [formData])
+  const calculatePriceProduct = (index) => {
+    const product = formData.product[index]
+    product.price = parseFloat(product.price)
+    console.log('product.price',product.price)
+    product.price = product.price * parseFloat(product.cantidad)
+    console.log('product',product)
+    console.log('cantidad',product.cantidad)
+    setFormData((prev) => ({ ...prev, product: product }))
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
@@ -289,7 +286,7 @@ export default function Component() {
             <input
               type='number'
               name={`treatment_price-${index}`}
-              value={treatment.price}
+           
               className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
               </div>
@@ -342,11 +339,11 @@ export default function Component() {
             </div>
             <div className='flex flex-col w-1/12 pr-2'>
               <label htmlFor={`product_quantity-${index}`} className="block text-sm font-medium text-gray-700">Cantidad</label>
-              <input type='number' name={`product_quantity-${index}`} value="1" className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChange('product', index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <div className='flex flex-col w-2/12'>
               <label htmlFor={`product_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
-              <input type='number' name={`product_price-${index}`} value={product.price} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' name={`product_price-${index}`}  value={product.price} onChange={(e) => handleChange('product', index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <input type="hidden" name={`product_id-${index}`} value={product.id} />
             {(suggestions.product.length > 0 && product.id.length == '')&& (
