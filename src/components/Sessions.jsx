@@ -52,7 +52,7 @@ export default function Component() {
     product: -1
   })
   const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
-  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1'}])
+  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1', 'price_no_change': '' }])
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
 
   const debouncedSearch = useCallback(
@@ -127,10 +127,24 @@ export default function Component() {
     const newItems = type === 'treatment' ? [...treatments] : [...products]
     newItems[index].name = value
     if(type === 'product'){
-      newItems[index].price = newItems[index].price * value
+      newItems[index].price = parseFloat(newItems[index].price_no_change) * parseFloat(value)
     }
     type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
+    console.log('newItems11',newItems)
     debouncedSearch(type, value)
+  }
+  const handleChangeProduct = (index, e) => {
+    const { value } = e.target
+    const newItems = [...products]
+    console.log('products',newItems)
+    //cambiar dinamicamente el nombre del campo
+    newItems[index][e.target.name] = e.target.value
+    if(e.target.name === 'product_quantity-'+index){
+      newItems[index].price = newItems[index].price * newItems[index].price_no_change * value
+    }
+    console.log('newItems',newItems)
+    setProducts(newItems)
+    debouncedSearch('product', value)
   }
 
   const handleBlur = (type, index) => {
@@ -211,6 +225,14 @@ export default function Component() {
     console.log('product',product)
     console.log('cantidad',product.cantidad)
     setFormData((prev) => ({ ...prev, product: product }))
+  }
+
+  const handlePriceTotal = (e, index) => {
+    const { value } = e.target
+    const newPriceTotal = [...products]
+    newPriceTotal[index].price = value
+    setProducts(newPriceTotal)
+    console.log('products desde handlePriceTotal',products)
   }
 
   return (
@@ -331,7 +353,7 @@ export default function Component() {
               id={`product-${index}`}
               name={`product-${index}`}
               value={product.name}
-              onChange={(e) => handleChange('product', index, e)}
+              onChange={(e) =>  handleChange('product', index, e)}
               onBlur={() => handleBlur('product', index)}
               onKeyDown={(e) => handleKeyDown(e, 'product', index)}
               className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
@@ -339,11 +361,11 @@ export default function Component() {
             </div>
             <div className='flex flex-col w-1/12 pr-2'>
               <label htmlFor={`product_quantity-${index}`} className="block text-sm font-medium text-gray-700">Cantidad</label>
-              <input type='number' name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChange('product', index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChangeProduct(index, e )} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <div className='flex flex-col w-2/12'>
               <label htmlFor={`product_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
-              <input type='number' name={`product_price-${index}`}  value={product.price} onChange={(e) => handleChange('product', index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' name={`product_price-${index}`}  value={product.price} onChange={(e) => handleChangeProduct(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <input type="hidden" name={`product_id-${index}`} value={product.id} />
             {(suggestions.product.length > 0 && product.id.length == '')&& (
