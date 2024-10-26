@@ -162,13 +162,13 @@ const Products = () => {
                 {editingProduct?.id === product.id ? (
                   <input
                     type="number"
-                    value={editingProduct.sale_price}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, sale_price: parseFloat(e.target.value) })}
+                    value={editingProduct.price}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) })}
                     className="border rounded px-2 py-1 w-full"
                   />
                 ) : (
                   // el separador decimal es una coma
-                  `${(parseFloat(product.sale_price) || 0).toFixed(2).replace('.', ',')}`
+                  `${(parseFloat(product.price) || 0).toFixed(2).replace('.', ',')}`
                 )}
               </td>
               <td className="py-4 px-6">

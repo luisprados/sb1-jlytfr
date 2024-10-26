@@ -34,6 +34,13 @@ const saveToDatabase = async (data) => {
 
 }
 
+const queryCustomerSessions = async (customer_id) => {
+  const response = await fetch(`http://localhost:8000/api/sessions/sessions_customer/${customer_id}`)
+  const data = await response.json()
+  console.log('datacustomersessions',data)
+  return data
+}
+
 export default function Component() {
   const [formData, setFormData] = useState({
     customer: '',
@@ -52,7 +59,7 @@ export default function Component() {
     product: -1
   })
   const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
-  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1', 'price_no_change': '' }])
+  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
 
   const debouncedSearch = useCallback(
@@ -127,16 +134,17 @@ export default function Component() {
     const newItems = type === 'treatment' ? [...treatments] : [...products]
     newItems[index].name = value
     if(type === 'product'){
-      newItems[index].price = parseFloat(newItems[index].price_no_change) * parseFloat(value)
+      newItems[index].price = 88
     }
     type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
-    console.log('newItems11',newItems)
+    console.log('newItems11',products)
     debouncedSearch(type, value)
   }
   const handleChangeProduct = (index, e) => {
     const { value } = e.target
     const newItems = [...products]
-    console.log('products',newItems)
+    console.log('prodgggggggggggggucts',newItems)
+    console.log('valor',newItems[index][e.target.name])
     //cambiar dinamicamente el nombre del campo
     newItems[index][e.target.name] = e.target.value
     if(e.target.name === 'product_quantity-'+index){
@@ -145,6 +153,14 @@ export default function Component() {
     console.log('newItems',newItems)
     setProducts(newItems)
     debouncedSearch('product', value)
+  }
+
+  const handleChangeCantidad = (index, e) => {
+    const { value } = e.target
+    const newItems = [...products]
+    newItems[index].cantidad = value
+    newItems[index].price = newItems[index].price_no_change * value
+    setProducts(newItems)
   }
 
   const handleBlur = (type, index) => {
@@ -169,11 +185,23 @@ export default function Component() {
     if(type =='customer'){
       setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
     }else{
+      console.log('products1',products)
     const newItems = type === 'treatment' ? [...treatments] : [...products]
-    newItems[index] = { name: suggestion.name, id: suggestion.id, price: suggestion.price }
+    newItems[index] = { 
+      name: suggestion.name,
+      id: suggestion.id,
+      price: parseFloat(suggestion.price) || 0,
+      }
+      if(type === 'product'){
+        newItems[index].cantidad = 1
+        newItems[index].price_no_change = parseFloat(suggestion.price) || 0
+      }
+    console.log('products2',products)
     type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
+    console.log('products3',products)
     //refrescar setFormData con los nuevos valores
       setFormData((prev) => ({ ...prev, [type]: newItems }))
+      console.log('products4',products)
     }
       setSuggestions((prev) => ({ ...prev, [type]: [] }))
   }
@@ -235,18 +263,24 @@ export default function Component() {
     console.log('products desde handlePriceTotal',products)
   }
 
+  const handleShowClientSessions = async () => {
+    const result = await queryCustomerSessions(formData.customer_id)
+    setShowClientSessions(true)
+  }
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
         {showClientSessions && (
           <div className="mb-4">
-            <a href="#" className="text-blue-600 hover:underline">
+            {/* <a href={`/sessions/${formData.customer_id}`} className="text-blue-600 hover:underline">
               Ver sesiones del cliente {formData.customer}
-            </a>
+              </a> */}
+            <button onClick={handleShowClientSessions} className="text-blue-600 hover:underline">Sesiones de {formData.customer}</button>
           </div>
         )}
+        {/* modal de sesiones para el cliente   */}
         
-        <div className="space-y-2 relative">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2 relative">
           <label htmlFor="client" className="block text-sm font-medium text-gray-700">
             Cliente *
           </label>
@@ -343,6 +377,7 @@ export default function Component() {
         )}
 
         {/* Campos de Producto */}
+        {console.log('products forumulario',products)}
         {products.map((product, index) => (
           <div key={index} className="relative flex justify-between">
             <div className='flex flex-col w-9/12 pr-2'>
@@ -361,7 +396,7 @@ export default function Component() {
             </div>
             <div className='flex flex-col w-1/12 pr-2'>
               <label htmlFor={`product_quantity-${index}`} className="block text-sm font-medium text-gray-700">Cantidad</label>
-              <input type='number' name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChangeProduct(index, e )} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChangeCantidad(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <div className='flex flex-col w-2/12'>
               <label htmlFor={`product_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
