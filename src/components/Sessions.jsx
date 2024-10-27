@@ -31,10 +31,11 @@ const saveToDatabase = async (data) => {
   })
   const result = await response.json()
   return result
-
+  
 }
 
 const queryCustomerSessions = async (customer_id) => {
+  console.log('customer_id',customer_id)
   const response = await fetch(`http://localhost:8000/api/sessions/sessions_customer/${customer_id}`)
   const data = await response.json()
   console.log('datacustomersessions',data)
@@ -53,6 +54,7 @@ export default function Component() {
     product: []
   })
   const [showClientSessions, setShowClientSessions] = useState(false)
+  const [showClientSessionsTable, setShowClientSessionsTable] = useState([])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState({
     customer: -1,
     treatment: -1,
@@ -61,7 +63,7 @@ export default function Component() {
   const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
   const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
-
+  
   const debouncedSearch = useCallback(
     debounce(async (field, value) => {
       if (value.length > 2) {
@@ -73,7 +75,7 @@ export default function Component() {
     }, 300),
     []
   )
-
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -81,7 +83,7 @@ export default function Component() {
   }
 
   const handleClientBlur = () => {
-    if (formData.customer) {
+    if (formData.customer_id) {
       setShowClientSessions(true)
     }
   }
@@ -265,6 +267,7 @@ export default function Component() {
 
   const handleShowClientSessions = async () => {
     const result = await queryCustomerSessions(formData.customer_id)
+    setShowClientSessionsTable(result)
     setShowClientSessions(true)
   }
   return (
@@ -274,10 +277,71 @@ export default function Component() {
             {/* <a href={`/sessions/${formData.customer_id}`} className="text-blue-600 hover:underline">
               Ver sesiones del cliente {formData.customer}
               </a> */}
-            <button onClick={handleShowClientSessions} className="text-blue-600 hover:underline">Sesiones de {formData.customer}</button>
+            <button 
+              onClick={() => handleShowClientSessions()} 
+              className="text-blue-600 hover:underline"
+            >
+              Sesiones de {formData.customer}
+            </button>
           </div>
         )}
-        {/* modal de sesiones para el cliente   */}
+        {/* modal con tabla de sesiones para el cliente   */}
+        {showClientSessions && (
+          <div
+          className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">
+          <table className="w-full text-left table-auto min-w-max">
+           {/*  <thead>
+              <tr>
+                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
+                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+                    Name
+                  </p>
+                </th>
+                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
+                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+                    Job
+                  </p>
+                </th>
+                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
+                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+                    Employed
+                  </p>
+                </th>
+                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
+                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70"></p>
+                </th>
+              </tr>
+            </thead> */}
+            {console.log('showClientSessionsTable',showClientSessionsTable)}
+            <tbody>
+            {showClientSessionsTable.sessions.map((treatment, index) => (
+              <tr className="even:bg-blue-gray-50/50">
+                <td className="p-4">
+                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
+                  {/*   {treatment.treatments.map((treat, i) => (
+                      <span key={i}>{treat.name}</span>
+                    ))} */}
+                  </p>
+                </td>
+                <td className="p-4">
+                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
+                  
+                  </p>
+                </td>
+                <td className="p-4">
+                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
+                     {treatment.created_at} 
+                  </p>
+                </td>
+                <td className="p-4">
+                  <a href="#" className="block font-sans text-sm antialiased font-medium leading-normal text-blue-gray-900">Edit</a>
+                </td>
+              </tr>
+               ))} 
+            </tbody>
+          </table>
+        </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2 relative">
@@ -320,7 +384,6 @@ export default function Component() {
         </div>
 
         {/* Campos de Tratamiento */}
-        {console.log('treatments',treatments)}
         {treatments.map((treatment, index) => (
           <div key={index} className="relative flex justify-between">
             <div className='flex flex-col pr-2   w-5/6'>{/*ocupa el espacio que queda libre*/}
