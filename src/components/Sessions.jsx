@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { debounce } from 'lodash'
+import { Card, Typography } from "@material-tailwind/react"
 
 // Simulated API calls - replace these with actual API calls to your backend
 const searchDatabase = async (field, query) => {
@@ -54,7 +55,7 @@ export default function Component() {
     product: []
   })
   const [showClientSessions, setShowClientSessions] = useState(false)
-  const [showClientSessionsTable, setShowClientSessionsTable] = useState([])
+  const [showClientSessionsTable, setShowClientSessionsTable] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState({
     customer: -1,
     treatment: -1,
@@ -62,6 +63,7 @@ export default function Component() {
   })
   const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
   const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
+  const [customer, setCustomer] = useState({ name: '', id: '' })
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
   
   const debouncedSearch = useCallback(
@@ -78,12 +80,14 @@ export default function Component() {
   
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    //setFormData(prev => ({ ...prev, [name]: value }))
+    setCustomer({name: value})
     debouncedSearch(name, value)
   }
 
   const handleClientBlur = () => {
-    if (formData.customer_id) {
+    console.log('formDatacustomer',customer)
+    if (customer.id) {
       setShowClientSessions(true)
     }
   }
@@ -184,8 +188,15 @@ export default function Component() {
   }
 
   const handleSelect = (type, index, suggestion) => {
+    console.log('tipo',type)
     if(type =='customer'){
-      setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
+   //   setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
+      /* const newCustomer = {
+        customer: suggestion.name,
+        customer_id: suggestion.id,
+      } */
+      setCustomer({name: suggestion.name, id: suggestion.id})
+      console.log('customer',customer)
     }else{
       console.log('products1',products)
     const newItems = type === 'treatment' ? [...treatments] : [...products]
@@ -266,7 +277,7 @@ export default function Component() {
   }
 
   const handleShowClientSessions = async () => {
-    const result = await queryCustomerSessions(formData.customer_id)
+    const result = await queryCustomerSessions(customer.id)
     setShowClientSessionsTable(result)
     setShowClientSessions(true)
   }
@@ -281,68 +292,82 @@ export default function Component() {
               onClick={() => handleShowClientSessions()} 
               className="text-blue-600 hover:underline"
             >
-              Sesiones de {formData.customer}
+              Sesiones de {customer.name}
             </button>
           </div>
         )}
         {/* modal con tabla de sesiones para el cliente   */}
-        {showClientSessions && (
+        {showClientSessionsTable && (
           <div
-          className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">
-          <table className="w-full text-left table-auto min-w-max">
-           {/*  <thead>
+              className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">
+       
+
+        <Card className="h-full w-full overflow-scroll">
+          <table className="w-full min-w-max table-auto text-left">
+            <thead>
               <tr>
-                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
-                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
-                    Name
-                  </p>
-                </th>
-                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
-                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
-                    Job
-                  </p>
-                </th>
-                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
-                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
-                    Employed
-                  </p>
-                </th>
-                <th className="p-4 border-b border-blue-gray-100 bg-blue-gray-50">
-                  <p className="block font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70"></p>
-                </th>
+                
+                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Tratamientos
+                    </Typography>
+                  </th>
+                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Productos
+                    </Typography>
+                  </th>
+                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Fecha
+                    </Typography>
+                  </th>
+              
               </tr>
-            </thead> */}
-            {console.log('showClientSessionsTable',showClientSessionsTable)}
+            </thead>
             <tbody>
-            {showClientSessionsTable.sessions.map((treatment, index) => (
-              <tr className="even:bg-blue-gray-50/50">
-                <td className="p-4">
-                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
-                  {/*   {treatment.treatments.map((treat, i) => (
-                      <span key={i}>{treat.name}</span>
-                    ))} */}
-                  </p>
-                </td>
-                <td className="p-4">
-                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
-                  
-                  </p>
-                </td>
-                <td className="p-4">
-                  <p className="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">
-                     {treatment.created_at} 
-                  </p>
-                </td>
-                <td className="p-4">
-                  <a href="#" className="block font-sans text-sm antialiased font-medium leading-normal text-blue-gray-900">Edit</a>
-                </td>
-              </tr>
-               ))} 
+              {showClientSessionsTable.sessions.map((treatment, index) => (
+                <tr key={index} className="even:bg-blue-gray-50/50">
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {treatment.treatments.map((treat, i) => (
+                        <p key={i}>{treat.name}</p>
+                      ))}
+                    </Typography>
+                  </td>
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {treatment.products.map((product, i) => (
+                        <p key={i}>{product.name}</p>
+                      ))}
+                    </Typography>
+                  </td>
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {new Date(treatment.created_at).toLocaleDateString()}
+                    </Typography>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+        </Card>
         </div>
-        )}
+  )}
         
+        {console.log('customer en formulario',customer)}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2 relative">
           <label htmlFor="client" className="block text-sm font-medium text-gray-700">
@@ -351,14 +376,14 @@ export default function Component() {
           <input
             id="client"
             name="customer"
-            value={formData.customer}
+            value={customer.name}
             onChange={handleInputChange}
             onKeyDown={(e) => handleKeyDown(e, 'customer')}
             onBlur={handleClientBlur}
             required
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
-          <input type="hidden" name="customer_id" value={formData.customer_id} />
+          <input type="hidden" name="customer_id" value={customer.id} />
           {suggestions.customer.length > 0 && (
             <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
               {suggestions.customer.map((suggestion, index) => (
@@ -368,13 +393,10 @@ export default function Component() {
                     index === selectedSuggestionIndex.customer ? 'bg-gray-200' : ''
                   }`}
                   onClick={() => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      customer: suggestion.name,
-                      customer_id: suggestion.id,
-                    }))
+                    setCustomer({name: suggestion.name, id: suggestion.id})
                     setSuggestions((prev) => ({ ...prev, customer: [] }))
-                  }}
+                    }
+                  }
                 >
                   {suggestion.name}
                 </li>
