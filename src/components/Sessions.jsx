@@ -94,10 +94,11 @@ export default function Component() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.customer) {
+    if (!customer.id) {
       alert('El campo cliente es obligatorio')
       return
     }
+    console.log('formData en submit',formData)
     const result = await saveToDatabase(formData)
     if (result.success) {
       alert('Registro guardado con éxito')
