@@ -20,9 +20,8 @@ const saveToDatabase = async (data) => {
   // Crear un nuevo objeto solo con los campos que se van a guardar
   const dataToSave = {
     customer_id: data.customer_id,
-    //convertir el array de objetos a un array de ids
-    treatment_id: data.treatment.map(item => item.id, item => item.price),
-    product_id: data.product.map(item => item.id, item => item.cantidad)
+    treatments: data.treatment,
+    products: data.product
   }
   const response = await fetch('http://localhost:8000/api/sessions/store', {
     method: 'POST',
@@ -45,28 +44,16 @@ const queryCustomerSessions = async (customer_id) => {
 }
 
 export default function Component() {
-  const [formData, setFormData] = useState({
-    customer: '',
-    treatment: [{ name: '', id: '', price: '' }], // Cambia a un array de objetos
-    product: [{ name: '', id: '', price: '', cantidad: '1' }]    // Cambia a un array de objetos
-  })
+  
+  const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
+  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
+  const [customer, setCustomer] = useState({ name: '', id: '' })
+  const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
   const [suggestions, setSuggestions] = useState({
     customer: [],
     treatment: [],
     product: []
   })
-  const [showClientSessions, setShowClientSessions] = useState(false)
-  const [showClientSessionsTable, setShowClientSessionsTable] = useState(false)
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState({
-    customer: -1,
-    treatment: -1,
-    product: -1
-  })
-  const [treatments, setTreatments] = useState([{ name: '', id: '' ,price: ''}])
-  const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
-  const [customer, setCustomer] = useState({ name: '', id: '' })
-  const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
-  
   const debouncedSearch = useCallback(
     debounce(async (field, value) => {
       if (value.length > 2) {
@@ -78,120 +65,6 @@ export default function Component() {
     }, 300),
     []
   )
-  
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    //setFormData(prev => ({ ...prev, [name]: value }))
-    setCustomer({name: value})
-    debouncedSearch(name, value)
-  }
-
-  const handleClientBlur = () => {
-    console.log('formDatacustomer',customer)
-    if (customer.id) {
-      setShowClientSessions(true)
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    // Verificar cliente
-    if (!customer.id) {
-      alert('El campo cliente es obligatorio')
-      return
-    }
-
-    // Crear objeto con los datos estructurados
-    const dataToSubmit = {
-      customer_id: customer.id,
-      treatment: treatments,
-      product: products
-    }
-
-    const result = await saveToDatabase(dataToSubmit)
-    if (result.success) {
-      alert('Registro guardado con éxito')
-      // Resetear el formulario
-      setCustomer({ name: '', id: '' })
-      setTreatments([{ name: '', id: '', price: '' }])
-      setProducts([{ name: '', id: '', price: '', cantidad: '1' }])
-    } else {
-      alert('Error al guardar el registro')
-    }
-  }
-
-  const handleKeyDown = (e, field, index, suggestion) => {
-    if (suggestions[field].length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelectedSuggestionIndex((prevIndex) => ({
-          ...prevIndex,
-          [field]: prevIndex[field] < suggestions[field].length - 1 ? prevIndex[field] + 1 : 0
-        }))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedSuggestionIndex((prevIndex) => ({
-          ...prevIndex,
-          [field]: prevIndex[field] > 0 ? prevIndex[field] - 1 : suggestions[field].length - 1
-        }))
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        if (selectedSuggestionIndex[field] >= 0) {
-           const selectedSuggestion = suggestions[field][selectedSuggestionIndex[field]]
-         
-          handleSelect(field, index, selectedSuggestion)
-        }
-      } else if (e.key === 'Escape') {
-        setSuggestions((prev) => ({ ...prev, [field]: [] }))
-        setSelectedSuggestionIndex((prevIndex) => ({ ...prevIndex, [field]: -1 }))
-      }
-    }
-  }
-
-  const handleChange = (type, index, e) => {
-    const { value } = e.target
-    const newItems = type === 'treatment' ? [...treatments] : [...products]
-    newItems[index].name = value
-    if(type === 'product'){
-      newItems[index].price = 88
-    }
-    type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
-    console.log('newItems11',products)
-    debouncedSearch(type, value)
-  }
-  const handleChangeProduct = (index, e) => {
-    const { value } = e.target
-    const newItems = [...products]
-    console.log('prodgggggggggggggucts',newItems)
-    console.log('valor',newItems[index][e.target.name])
-    //cambiar dinamicamente el nombre del campo
-    newItems[index][e.target.name] = e.target.value
-    if(e.target.name === 'product_quantity-'+index){
-      newItems[index].price = newItems[index].price * newItems[index].price_no_change * value
-    }
-    console.log('newItems',newItems)
-    setProducts(newItems)
-    debouncedSearch('product', value)
-  }
-
-  const handleChangeCantidad = (index, e) => {
-    const { value } = e.target
-    const newItems = [...products]
-    newItems[index].cantidad = value
-    newItems[index].price = newItems[index].price_no_change * value
-    setProducts(newItems)
-  }
-
-  const handleBlur = (type, index) => {
-    const items = type === 'treatment' ? treatments : products
-    if (items[index].name.trim() !== '') {
-      setShowAddButton((prev) => ({ ...prev, [type]: true }))
-    } else {
-      setShowAddButton((prev) => ({ ...prev, [type]: false }))
-    }
-  }
-
   const addField = (type) => {
     if (type === 'treatment') {
       setTreatments([...treatments, { name: '', id: '' }])
@@ -199,39 +72,7 @@ export default function Component() {
       setProducts([...products, { name: '', id: '' }])
     }
     setShowAddButton((prev) => ({ ...prev, [type]: false }))
-  }
-
-  const handleSelect = (type, index, suggestion) => {
-    console.log('tipo',type)
-    if(type =='customer'){
-   //   setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
-      /* const newCustomer = {
-        customer: suggestion.name,
-        customer_id: suggestion.id,
-      } */
-      setCustomer({name: suggestion.name, id: suggestion.id})
-      console.log('customer',customer)
-    }else{
-      console.log('products1',products)
-    const newItems = type === 'treatment' ? [...treatments] : [...products]
-    newItems[index] = { 
-      name: suggestion.name,
-      id: suggestion.id,
-      price: parseFloat(suggestion.price) || 0,
-      }
-      if(type === 'product'){
-        newItems[index].cantidad = 1
-        newItems[index].price_no_change = parseFloat(suggestion.price) || 0
-      }
-    console.log('products2',products)
-    type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
-    console.log('products3',products)
-    //refrescar setFormData con los nuevos valores
-      setFormData((prev) => ({ ...prev, [type]: newItems }))
-      console.log('products4',products)
-    }
-      setSuggestions((prev) => ({ ...prev, [type]: [] }))
-  }
+  }  
 
   const handleTreatmentChange = (index, e) => {
     const { value } = e.target
@@ -241,22 +82,14 @@ export default function Component() {
     debouncedSearch('treatment', value)
   }
 
-  const handleProductChange = (index, e) => {
-    const { value } = e.target
-    const newProducts = [...formData.products]
-    newProducts[index].name = value
-    setFormData((prev) => ({ ...prev, products: newProducts }))
-    debouncedSearch('product', value)
-  }
-
-  useEffect(() => {
+   /* useEffect(() => {
     // Reset selected suggestion index when suggestions change
     setSelectedSuggestionIndex({
       customer: -1,
       treatment: -1,
       product: -1
     })
-  }, [suggestions])
+  }, [suggestions])  */
 
   const addTreatmentField = () => {
     setFormData((prev) => ({
@@ -272,153 +105,60 @@ export default function Component() {
     }))
   }
 
-  const calculatePriceProduct = (index) => {
-    const product = formData.product[index]
-    product.price = parseFloat(product.price)
-    console.log('product.price',product.price)
-    product.price = product.price * parseFloat(product.cantidad)
-    console.log('product',product)
-    console.log('cantidad',product.cantidad)
-    setFormData((prev) => ({ ...prev, product: product }))
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    saveToDatabase(formData)
   }
-
-  const handlePriceTotal = (e, index) => {
-    const { value } = e.target
-    const newPriceTotal = [...products]
-    newPriceTotal[index].price = value
-    setProducts(newPriceTotal)
-    console.log('products desde handlePriceTotal',products)
+ const handleChange = (type, index, e) => {
+  const { value } = e.target
+  console.log('value',e)
+  const newItems = type === 'treatment' ? [...treatments] : [...products]
+  const propertyToUpdate = e.target.id === 'price' ? 'price' : 'name'
+  newItems[index][propertyToUpdate] = value
+  type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
+  debouncedSearch(type, value)
+ }
+ const handleSelect = (type, index, suggestion) => {
+  console.log('tipo',type)
+  if(type =='customer'){
+ //   setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
+    /* const newCustomer = {
+      customer: suggestion.name,
+      customer_id: suggestion.id,
+    } */
+    setCustomer({name: suggestion.name, id: suggestion.id})
+  }else{
+  const newItems = type === 'treatment' ? [...treatments] : [...products]
+  newItems[index] = { 
+    name: suggestion.name,
+    id: suggestion.id,
+    price: parseFloat(suggestion.price) || 0,
+    }
+    if(type === 'product'){
+      newItems[index].cantidad = 1
+      newItems[index].price_no_change = parseFloat(suggestion.price) || 0
+    }
+  type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
   }
-
-  const handleShowClientSessions = async () => {
-    const result = await queryCustomerSessions(customer.id)
-    setShowClientSessionsTable(result)
-    setShowClientSessions(true)
-  }
-  return (
-    <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-        {showClientSessions && (
-          <div className="mb-4">
-            {/* <a href={`/sessions/${formData.customer_id}`} className="text-blue-600 hover:underline">
-              Ver sesiones del cliente {formData.customer}
-              </a> */}
-            <button 
-              onClick={() => handleShowClientSessions()} 
-              className="text-blue-600 hover:underline"
-            >
-              Sesiones de {customer.name}
-            </button>
-          </div>
-        )}
-        {/* modal con tabla de sesiones para el cliente   */}
-        {showClientSessionsTable && (
-          <div
-              className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">
+    setSuggestions((prev) => ({ ...prev, [type]: [] }))
+}
+const handleChangeCantidad = (index, e) => {
+  const { value } = e.target
+  const newItems = [...products]
+  newItems[index].cantidad = value
+  newItems[index].price = newItems[index].price_no_change * value
+  setProducts(newItems)
+}
+return (
+  <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
+      
        
-
-        <Card className="h-full w-full overflow-scroll">
-          <table className="w-full min-w-max table-auto text-left">
-            <thead>
-              <tr>
-                
-                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
-                    <Typography
-                      variant="small"
-                      color="blue-gray"
-                      className="font-normal leading-none opacity-70"
-                    >
-                      Tratamientos
-                    </Typography>
-                  </th>
-                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
-                    <Typography
-                      variant="small"
-                      color="blue-gray"
-                      className="font-normal leading-none opacity-70"
-                    >
-                      Productos
-                    </Typography>
-                  </th>
-                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
-                    <Typography
-                      variant="small"
-                      color="blue-gray"
-                      className="font-normal leading-none opacity-70"
-                    >
-                      Fecha
-                    </Typography>
-                  </th>
-              
-              </tr>
-            </thead>
-            <tbody>
-              {showClientSessionsTable.sessions.map((treatment, index) => (
-                <tr key={index} className="even:bg-blue-gray-50/50">
-                  <td className="p-4">
-                    <Typography variant="small" color="blue-gray" className="font-normal">
-                      {treatment.treatments.map((treat, i) => (
-                        <p key={i}>{treat.name}</p>
-                      ))}
-                    </Typography>
-                  </td>
-                  <td className="p-4">
-                    <Typography variant="small" color="blue-gray" className="font-normal">
-                      {treatment.products.map((product, i) => (
-                        <p key={i}>{product.name}</p>
-                      ))}
-                    </Typography>
-                  </td>
-                  <td className="p-4">
-                    <Typography variant="small" color="blue-gray" className="font-normal">
-                      {new Date(treatment.created_at).toLocaleDateString()}
-                    </Typography>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-        </div>
-  )}
         
-        {console.log('customer en formulario',customer)}
+       
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2 relative">
-          <label htmlFor="client" className="block text-sm font-medium text-gray-700">
-            Cliente *
-          </label>
-          <input
-            id="client"
-            name="customer"
-            value={customer.name}
-            onChange={handleInputChange}
-            onKeyDown={(e) => handleKeyDown(e, 'customer')}
-            onBlur={handleClientBlur}
-            required
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-          <input id="customer_id" type="hidden" name="customer_id" value={customer.id} />
-          {suggestions.customer.length > 0 && (
-            <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
-              {suggestions.customer.map((suggestion, index) => (
-                <li
-                  key={index}
-                  className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${
-                    index === selectedSuggestionIndex.customer ? 'bg-gray-200' : ''
-                  }`}
-                  onClick={() => {
-                    setCustomer({name: suggestion.name, id: suggestion.id})
-                    setSuggestions((prev) => ({ ...prev, customer: [] }))
-                    }
-                  }
-                >
-                  {suggestion.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
+          
+          {console.log('trata',treatments)}
+      {console.log('suggestions',suggestions)}
         {/* Campos de Tratamiento */}
         {treatments.map((treatment, index) => (
           <div key={index} className="relative flex justify-between">
@@ -431,8 +171,6 @@ export default function Component() {
                 name={`treatment-${index}`}
                 value={treatment.name}
                 onChange={(e) => handleChange('treatment', index, e)}
-                onBlur={() => handleBlur('treatment', index)}
-                onKeyDown={(e) => handleKeyDown(e, 'treatment', index)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
             </div>
@@ -440,21 +178,21 @@ export default function Component() {
               <label htmlFor={`treatment_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
             <input
               type='number'
-              id={`treatment_price-${index}`}
-              name={`treatment_price-${index}`}
-           
+              id={'price'}
+              name={'price'}
+              value={treatment.price}
+              onChange={(e) => handleChange('treatment', index, e)}
+              onBlur={() => setShowAddButton({treatment: true})}
               className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
               </div>
             <input type="hidden" id={`treatment_id-${index}`} name={`treatment_id-${index}`} value={treatment.id} />
-            {(suggestions.treatment.length > 0 && treatment.id.length == '')&& (
+            {(suggestions.treatment.length > 0 )&& (
               <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
                 {suggestions.treatment.map((suggestion, suggestionIndex) => (
                   <li
                     key={suggestionIndex}
-                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${
-                      suggestionIndex === selectedSuggestionIndex.treatment ? 'bg-gray-200' : ''
-                    }`}
+                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer `}
                     onClick={() => handleSelect('treatment', index, suggestion)}
                   >
                     {suggestion.name}
@@ -475,9 +213,8 @@ export default function Component() {
             + Tto.
           </button>
         )}
-
+          {console.log('products',products)}
         {/* Campos de Producto */}
-        {console.log('products forumulario',products)}
         {products.map((product, index) => (
           <div key={index} className="relative flex justify-between">
             <div className='flex flex-col w-9/12 pr-2'>
@@ -489,7 +226,7 @@ export default function Component() {
               name={`product-${index}`}
               value={product.name}
               onChange={(e) =>  handleChange('product', index, e)}
-              onBlur={() => handleBlur('product', index)}
+              onBlur={() => setShowAddButton({product: true})}
               onKeyDown={(e) => handleKeyDown(e, 'product', index)}
               className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
@@ -508,9 +245,7 @@ export default function Component() {
                 {suggestions.product.map((suggestion, suggestionIndex) => (
                   <li
                     key={suggestionIndex}
-                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${
-                      suggestionIndex === selectedSuggestionIndex.product ? 'bg-gray-200' : ''
-                    }`}
+                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer `}
                     onClick={() => handleSelect('product', index, suggestion)}
                   >
                     {suggestion.name}
