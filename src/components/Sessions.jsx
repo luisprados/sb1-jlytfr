@@ -17,18 +17,13 @@ const searchDatabase = async (field, query) => {
 
 const saveToDatabase = async (data) => {
   console.log('dataaaaaaaaaaaa',data)
-  // Crear un nuevo objeto solo con los campos que se van a guardar
-  const dataToSave = {
-    customer_id: data.customer_id,
-    treatments: data.treatment,
-    products: data.product
-  }
+ 
   const response = await fetch('http://localhost:8000/api/sessions/store', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(dataToSave)
+    body: JSON.stringify(data)
   })
   const result = await response.json()
   return result
@@ -49,11 +44,13 @@ export default function Component() {
   const [products, setProducts] = useState([{ name: '', id: '' ,price: '', cantidad: '1' }])
   const [customer, setCustomer] = useState({ name: '', id: '' })
   const [showAddButton, setShowAddButton] = useState({ treatment: false, product: false })
-  const [suggestions, setSuggestions] = useState({
-    customer: [],
-    treatment: [],
-    product: []
+  const [suggestions, setSuggestions] = useState({customer: [], treatment: [], product: []})
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState({
+    customer: -1,
+    treatment: -1,
+    product: -1
   })
+
   const debouncedSearch = useCallback(
     debounce(async (field, value) => {
       if (value.length > 2) {
@@ -67,9 +64,9 @@ export default function Component() {
   )
   const addField = (type) => {
     if (type === 'treatment') {
-      setTreatments([...treatments, { name: '', id: '' }])
+      setTreatments([...treatments, { name: '', id: '' ,price: ''}])
     } else {
-      setProducts([...products, { name: '', id: '' }])
+      setProducts([...products, { name: '', id: '' ,price: '', cantidad: '1' }])
     }
     setShowAddButton((prev) => ({ ...prev, [type]: false }))
   }  
@@ -107,26 +104,35 @@ export default function Component() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    saveToDatabase(formData)
+    const data = {
+      customer: customer,
+      treatments: treatments,
+      products: products
+    }
+    saveToDatabase(data)
   }
+
  const handleChange = (type, index, e) => {
   const { value } = e.target
-  console.log('value',e)
+  console.log('valueeeeeeeeeee',e)
   const newItems = type === 'treatment' ? [...treatments] : [...products]
-  const propertyToUpdate = e.target.id === 'price' ? 'price' : 'name'
+  const propertyToUpdate = e.target.dirName === 'price' ? 'price' : 'name'
   newItems[index][propertyToUpdate] = value
   type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
+  type === 'treatment' && value.length > 4 && setShowAddButton({treatment: true})
   debouncedSearch(type, value)
  }
+
  const handleSelect = (type, index, suggestion) => {
-  console.log('tipo',type)
-  if(type =='customer'){
- //   setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
-    /* const newCustomer = {
-      customer: suggestion.name,
-      customer_id: suggestion.id,
-    } */
-    setCustomer({name: suggestion.name, id: suggestion.id})
+   if(type =='customer'){
+     //   setFormData((prev) => ({ ...prev, customer: suggestion.name, customer_id: suggestion.id }))
+      const newCustomer = {
+      name: suggestion.name,
+      id: suggestion.id,
+      } 
+     console.log('suggestion',suggestion.name)
+     setCustomer(newCustomer)
+     console.log('custo',customer)
   }else{
   const newItems = type === 'treatment' ? [...treatments] : [...products]
   newItems[index] = { 
@@ -139,9 +145,11 @@ export default function Component() {
       newItems[index].price_no_change = parseFloat(suggestion.price) || 0
     }
   type === 'treatment' ? setTreatments(newItems) : setProducts(newItems)
+  type === 'treatment' && setShowAddButton({treatment: true})
   }
     setSuggestions((prev) => ({ ...prev, [type]: [] }))
 }
+
 const handleChangeCantidad = (index, e) => {
   const { value } = e.target
   const newItems = [...products]
@@ -149,6 +157,43 @@ const handleChangeCantidad = (index, e) => {
   newItems[index].price = newItems[index].price_no_change * value
   setProducts(newItems)
 }
+
+const handleInputChange = (e) => {
+  const value = e.target.value
+  //setFormData(prev => ({ ...prev, [name]: value }))
+  setCustomer({name: value})
+  console.log('customer2222',customer)
+  debouncedSearch('customer', value)
+}
+
+const handleKeyDown = (e, field, index, suggestion) => {
+  if (suggestions[field].length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prevIndex) => ({
+        ...prevIndex,
+        [field]: prevIndex[field] < suggestions[field].length - 1 ? prevIndex[field] + 1 : 0
+      }))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prevIndex) => ({
+        ...prevIndex,
+        [field]: prevIndex[field] > 0 ? prevIndex[field] - 1 : suggestions[field].length - 1
+      }))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (selectedSuggestionIndex[field] >= 0) {
+         const selectedSuggestion = suggestions[field][selectedSuggestionIndex[field]]
+       
+        handleSelect(field, index, selectedSuggestion)
+      }
+    } else if (e.key === 'Escape') {
+      setSuggestions((prev) => ({ ...prev, [field]: [] }))
+      setSelectedSuggestionIndex((prevIndex) => ({ ...prevIndex, [field]: -1 }))
+    }
+  }
+}
+
 return (
   <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
       
@@ -156,43 +201,80 @@ return (
         
        
         <form onSubmit={handleSubmit} className="space-y-4">
-          
+        <div className="space-y-2 relative">
+          <label htmlFor="client" className="block text-sm font-medium text-gray-700">
+            Cliente *
+          </label>
+          <input
+            id="client"
+            name="customer"
+            value={customer.name}
+            onChange={(e) => handleInputChange(e)}
+            onKeyDown={(e) => handleKeyDown(e, 'customer')}
+           // onBlur={handleClientBlur}
+            required
+            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+          {console.log('customer3333',customer)}
+          <input id="customer_id" type="hidden" name="customer_id" value={customer.id} />
+          {suggestions.customer.length > 0 && (
+            <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
+              {suggestions.customer.map((suggestion, index) => (
+                <li
+                  key={index}
+                  className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${selectedSuggestionIndex.customer === index ? 'bg-gray-100' : ''}`}
+                  onClick={() => {
+                  /*   setCustomer({name: suggestion.name, id: suggestion.id}) */
+                    handleSelect('customer', index,suggestion )
+                    setSuggestions((prev) => ({ ...prev, customer: [] }))
+                    }
+                  }
+                >
+                  {suggestion.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
           {console.log('trata',treatments)}
       {console.log('suggestions',suggestions)}
         {/* Campos de Tratamiento */}
         {treatments.map((treatment, index) => (
           <div key={index} className="relative flex justify-between">
             <div className='flex flex-col pr-2   w-5/6'>{/*ocupa el espacio que queda libre*/}
-              <label htmlFor={`treatment-${index}`} className="block text-sm font-medium text-gray-700">
+              <label htmlFor={`treatments[${index}][name]`} className="block text-sm font-medium text-gray-700">
                 Tratamiento {index + 1}
               </label>
               <input
-                id={`treatment-${index}`}
-                name={`treatment-${index}`}
+                id={`treatments[${index}][id]`}
+                name={`treatments[${index}][name]`}
                 value={treatment.name}
+                dirname='name'
                 onChange={(e) => handleChange('treatment', index, e)}
+                onKeyDown={(e) => handleKeyDown(e, 'treatment', index)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
             </div>
             <div className='flex flex-col w-1/6'>
-              <label htmlFor={`treatment_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
+              <label htmlFor={`treatments[${index}][price]`} className="block text-sm font-medium text-gray-700">Precio</label>
             <input
               type='number'
-              id={'price'}
-              name={'price'}
+              id={`treatments[${index}][price]`}
+              name={`treatments[${index}][price]`}
               value={treatment.price}
+              dirname='price'
               onChange={(e) => handleChange('treatment', index, e)}
               onBlur={() => setShowAddButton({treatment: true})}
               className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
               </div>
             <input type="hidden" id={`treatment_id-${index}`} name={`treatment_id-${index}`} value={treatment.id} />
-            {(suggestions.treatment.length > 0 )&& (
+            {(suggestions.treatment.length > 0 && index == treatments.length - 1)&& (
               <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
                 {suggestions.treatment.map((suggestion, suggestionIndex) => (
                   <li
                     key={suggestionIndex}
-                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer `}
+                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${selectedSuggestionIndex.treatment === suggestionIndex ? 'bg-gray-100' : ''}`}
                     onClick={() => handleSelect('treatment', index, suggestion)}
                   >
                     {suggestion.name}
@@ -222,30 +304,31 @@ return (
               Producto {index + 1}
             </label>
             <input
-              id={`product-${index}`}
-              name={`product-${index}`}
+              id={`products[${index}][id]`}
+              name={`products[${index}][name]`}
               value={product.name}
               onChange={(e) =>  handleChange('product', index, e)}
               onBlur={() => setShowAddButton({product: true})}
               onKeyDown={(e) => handleKeyDown(e, 'product', index)}
-              className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 
+              bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
             </div>
             <div className='flex flex-col w-1/12 pr-2'>
               <label htmlFor={`product_quantity-${index}`} className="block text-sm font-medium text-gray-700">Cantidad</label>
-              <input type='number' id={`product_quantity-${index}`} name={`product_quantity-${index}`} value={product.cantidad} onChange={(e) => handleChangeCantidad(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' id={`product_quantity-${index}`} name={`products[${index}][cantidad]`} value={product.cantidad} onChange={(e) => handleChangeCantidad(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <div className='flex flex-col w-2/12'>
               <label htmlFor={`product_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
-              <input type='number' id={`product_price-${index}`} name={`product_price-${index}`}  value={product.price} onChange={(e) => handleChangeProduct(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' id={`product_price-${index}`} name={`products[${index}][price]`} value={product.price} onChange={(e) => handleChangeProduct(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <input type="hidden" id={`product_id-${index}`} name={`product_id-${index}`} value={product.id} />
-            {(suggestions.product.length > 0 && product.id.length == '')&& (
+            {(suggestions.product.length > 0 && index == products.length - 1)&& (
               <ul className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-sm w-full">
                 {suggestions.product.map((suggestion, suggestionIndex) => (
                   <li
                     key={suggestionIndex}
-                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer `}
+                    className={`px-3 py-2 hover:bg-gray-100 cursor-pointer ${selectedSuggestionIndex.product === suggestionIndex ? 'bg-gray-100' : ''}`}
                     onClick={() => handleSelect('product', index, suggestion)}
                   >
                     {suggestion.name}
