@@ -50,6 +50,8 @@ export default function Component() {
     treatment: -1,
     product: -1
   })
+  const [showClientSessions, setShowClientSessions] = useState(false)
+  const [showClientSessionsTable, setShowClientSessionsTable] = useState(false)
 
   const debouncedSearch = useCallback(
     debounce(async (field, value) => {
@@ -62,6 +64,13 @@ export default function Component() {
     }, 300),
     []
   )
+
+  useEffect(() => {
+    if(customer.id !== ''){
+      setShowClientSessions(true)
+    }
+  },[customer])
+
   const addField = (type) => {
     if (type === 'treatment') {
       setTreatments([...treatments, { name: '', id: '' ,price: ''}])
@@ -110,6 +119,14 @@ export default function Component() {
       products: products
     }
     saveToDatabase(data)
+  }
+
+  const checkIfObjectIsEmpty = (obj, index) => {
+    const newTreatments = obj === 'treatments' ? [...treatments] : [...products]
+    if(newTreatments[index].name === ''){
+      newTreatments.splice(index, 1)
+      obj === 'treatments' ? setTreatments(newTreatments) : setProducts(newTreatments)
+    }
   }
 
  const handleChange = (type, index, e) => {
@@ -194,12 +211,98 @@ const handleKeyDown = (e, field, index, suggestion) => {
   }
 }
 
+const handleShowClientSessions = async () => {
+  if(showClientSessions && showClientSessionsTable){
+   // setShowClientSessions(false)
+    setShowClientSessionsTable(false)
+  }else{
+    const result = await queryCustomerSessions(customer.id)
+    setShowClientSessionsTable(result)
+    setShowClientSessions(true)
+  }
+}
+
 return (
   <div className="w-full max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      
-       
-        
-       
+       {showClientSessions && (
+          <div className="mb-4">
+            {/* <a href={`/sessions/${formData.customer_id}`} className="text-blue-600 hover:underline">
+              Ver sesiones del cliente {formData.customer}
+              </a> */}
+            <button 
+              onClick={() => handleShowClientSessions()} 
+              className="text-blue-600 hover:underline"
+            >
+              Sesiones de {customer.name}
+            </button>
+          </div>
+        )}
+        {/* modal con tabla de sesiones para el cliente   */}
+        {showClientSessionsTable && (
+          <div
+              className="relative flex flex-col w-full h-full text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">
+        <Card className="h-full w-full">
+          <table className="w-full min-w-max table-auto text-left">
+            <thead className="bg-indigo-600 text-white opacity-100 rounded-t-xl">
+              <tr className="rounded-t-xl">
+                  <th  className="border-b border-blue-gray-100 p-4 rounded-tl-xl">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none"
+                    >
+                      Tratamientos
+                    </Typography>
+                  </th>
+                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none"
+                    >
+                      Productos
+                    </Typography>
+                  </th>
+                  <th  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 rounded-tr-xl">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none"
+                    >
+                      Fecha
+                    </Typography>
+                  </th>
+              </tr>
+            </thead>
+            <tbody>
+              {showClientSessionsTable.sessions.map((treatment, index) => (
+                <tr key={index} className="even:bg-gray-300/50">
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {treatment.treatments.map((treat, i) => (
+                        <p key={i}>{treat.name} - {treat.price}€</p>
+                      ))}
+                    </Typography>
+                  </td>
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {treatment.products.map((product, i) => (
+                        <p key={i}>{product.name} - {product.price}€</p>
+                      ))}
+                    </Typography>
+                  </td>
+                  <td className="p-4">
+                    <Typography variant="small" color="blue-gray" className="font-normal">
+                      {new Date(treatment.created_at).toLocaleDateString()}
+                    </Typography>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+        </div>
+  )}
         <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2 relative">
           <label htmlFor="client" className="block text-sm font-medium text-gray-700">
@@ -252,6 +355,7 @@ return (
                 dirname='name'
                 onChange={(e) => handleChange('treatment', index, e)}
                 onKeyDown={(e) => handleKeyDown(e, 'treatment', index)}
+                onBlur={() => checkIfObjectIsEmpty('treatments', index)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
             </div>
@@ -286,7 +390,7 @@ return (
         ))}
 
         {/* Botón para añadir otro tratamiento */}
-        {showAddButton.treatment && (
+        
           <button
             type="button"
             onClick={() => addField('treatment')}
@@ -294,7 +398,7 @@ return (
           >
             + Tto.
           </button>
-        )}
+        
           {console.log('products',products)}
         {/* Campos de Producto */}
         {products.map((product, index) => (
@@ -320,7 +424,13 @@ return (
             </div>
             <div className='flex flex-col w-2/12'>
               <label htmlFor={`product_price-${index}`} className="block text-sm font-medium text-gray-700">Precio</label>
-              <input type='number' id={`product_price-${index}`} name={`products[${index}][price]`} value={product.price} onChange={(e) => handleChangeProduct(index, e)} className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              <input type='number' 
+              id={`product_price-${index}`} 
+              name={`products[${index}][price]`} 
+              dirname='price'
+              value={product.price} 
+              onChange={(e) => handleChange('product', index, e)}
+              className="mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
             </div>
             <input type="hidden" id={`product_id-${index}`} name={`product_id-${index}`} value={product.id} />
             {(suggestions.product.length > 0 && index == products.length - 1)&& (
@@ -340,7 +450,6 @@ return (
         ))}
 
         {/* Botón para añadir otro producto */}
-        {showAddButton.product && (
           <button
             type="button"
             onClick={() => addField('product')}
@@ -348,7 +457,6 @@ return (
           >
             + Producto
           </button>
-        )}
 
         <button
           type="submit"
